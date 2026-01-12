@@ -11,8 +11,6 @@ import time
 import queue
 import csv
 import os
-import matplotlib.pyplot as plt
-
 
 from carlaros_interfaces.srv import InferSteering   # <--- custom service
 
@@ -48,9 +46,6 @@ class CarlaDriverNode(Node):
         ])
         self.csv_f.flush()
         self.i = 0
-        self.seq_list = []
-        self.lat_service_ms_list = []
-
         self.image_queue = queue.Queue()
         def _cam_cb(img):
             t_cam_cb_ns = time.perf_counter_ns()
@@ -165,12 +160,10 @@ class CarlaDriverNode(Node):
         # t_apply_ns = time.perf_counter_ns()
 
         lat_service_ms = (t_resp_done_ns - t_req_send_ns) / 1e6
-        
         # lat_e2e_ms = (t_apply_ns - t_cam_cb_ns) / 1e6
 
         print(f"Seq: {seq} | Steer: {steering_cmd:.4f} | service_ms: {lat_service_ms:.2f}")
-        self.seq_list.append(seq)
-        self.lat_service_ms_list.append(lat_service_ms)
+
         # write one row per frame
         self.csv_w.writerow([
             seq,
@@ -225,25 +218,7 @@ def main(args=None):
             print(f"Saved latency log to: {node.csv_path}")
         except Exception as e:
             print("CSV close error:", e)
-        try:
-            if hasattr(node, "seq_list") and len(node.seq_list) > 1:
-                plt.figure()
-                plt.plot(node.seq_list, node.lat_service_ms_list)
-                plt.xlabel("Seq")
-                plt.ylabel("Service latency (ms)")
-                plt.title("Model Service Latency vs Seq")
-                plt.grid(True)
-                plt.tight_layout()
 
-                plot_path = os.path.expanduser("~/latency_logs/latency_plot.png")
-                plt.savefig(plot_path, dpi=200)
-                print(f"Saved latency plot to: {plot_path}")
-
-                #plt.show()
-            else:
-                print("Not enough latency samples to plot.")
-        except Exception as e:
-            print("Plot error:", e)
         try:
             settings = node.world.get_settings()
             settings.synchronous_mode = False
