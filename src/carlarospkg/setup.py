@@ -21,7 +21,8 @@ setup(
     entry_points={
         'console_scripts': [
             'carlarosnode = carlarospkg.carlarosnode:main',
-            'camshakenode = carlarospkg.camshakenode:main'
+            'camshakenode = carlarospkg.camshakenode:main',
+            'carlarosnode_log1 = carlarospkg.carlarosnode_log1:main'
         ],
     },
 )
