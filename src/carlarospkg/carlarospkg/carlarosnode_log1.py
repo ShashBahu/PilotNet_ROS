@@ -29,7 +29,7 @@ class CarlaDriverNode(Node):
         self.init_carla()
 
         self.run_id = int(time.time())
-        log_dir = os.path.expanduser("~/latency_logs")
+        log_dir = os.path.expanduser("/home/krg6/Capstone/PilotNet_Train/pilotnetros/latency_logs")
         os.makedirs(log_dir, exist_ok=True)
         self.csv_path = os.path.join(log_dir, f"latency_log.csv")
 
