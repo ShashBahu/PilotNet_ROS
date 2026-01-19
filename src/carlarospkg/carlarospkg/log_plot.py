@@ -121,15 +121,18 @@ def overlay_hist(a_ms, b_ms,label_a, label_b, title, xlabel, out_png,bins=60):
         )
     )
 
-    # vertical lines — ROS
-    plt.axvline(mean_a, linestyle="-",  linewidth=1.5)
-    plt.axvline(p95_a, linestyle="--", linewidth=1.5)
-    plt.axvline(p99_a, linestyle=":",  linewidth=1.5)
+    ROS_COLOR = "tab:blue"
+    SINGLE_COLOR = "tab:orange"
+    
+    # vertical lines — ROS bridge
+    plt.axvline(mean_a, color=ROS_COLOR, linestyle="-",  linewidth=1.5)
+    plt.axvline(p95_a,  color=ROS_COLOR, linestyle="--", linewidth=1.5)
+    plt.axvline(p99_a,  color=ROS_COLOR, linestyle=":",  linewidth=1.5)
 
     # vertical lines — Single system
-    plt.axvline(mean_b, linestyle="-",  linewidth=1.5)
-    plt.axvline(p95_b, linestyle="--", linewidth=1.5)
-    plt.axvline(p99_b, linestyle=":",  linewidth=1.5)
+    plt.axvline(mean_b, color=SINGLE_COLOR, linestyle="-",  linewidth=1.5)
+    plt.axvline(p95_b,  color=SINGLE_COLOR, linestyle="--", linewidth=1.5)
+    plt.axvline(p99_b,  color=SINGLE_COLOR, linestyle=":",  linewidth=1.5)
 
     plt.xlabel(xlabel)
     plt.ylabel("Count")
