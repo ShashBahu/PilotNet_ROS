@@ -7,7 +7,7 @@ import time
 import os
 from carla import WeatherParameters
 import math
-
+import csv
 import queue
 
 os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
@@ -222,8 +222,20 @@ def main():
             #cv2.imshow("Image Seen: ", img_display)
             #cv2.waitKey(1)
 
+        log_dir = "/home/krg6/Capstone/PilotNet_Train/pilotnetros/latency_logs"
+        os.makedirs(log_dir, exist_ok=True)
+        csv_path = os.path.join(log_dir, "elapsedtime_log.csv")
+
+        csv_f = open(csv_path, "w", newline="")
+        csv_w = csv.writer(csv_f)
+        csv_w.writerow(["iter", "elapsedtime_s"])
+        csv_f.flush()
+        print("Logging elapsedtime to:", csv_path)
+        iter_count = 0
+        
         image_queue = queue.Queue()
         camera.listen(image_queue.put)
+        
         world.tick()
         oldtime=time.time()
         #camera.listen(lambda image: drive(image))
@@ -256,7 +268,10 @@ def main():
                 elapsedtime=time.time()-oldtime
                 print("Time elapsed: ", elapsedtime)
                 oldtime=time.time()
-
+                iter_count += 1
+                csv_w.writerow([iter_count, elapsedtime])
+                if iter_count % 50 == 0:
+                    csv_f.flush()
                 time.sleep(0.1)
         except KeyboardInterrupt:
             camera.stop()
