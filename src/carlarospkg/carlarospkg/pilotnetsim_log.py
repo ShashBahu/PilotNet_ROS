@@ -122,7 +122,7 @@ def main():
         # Create CSV Log file
         log_dir = "/home/krg6/Capstone/PilotNet_Train/pilotnetros/latency_logs"
         os.makedirs(log_dir, exist_ok=True)
-        csv_path = os.path.join(log_dir, "elapsedtime_log.csv")
+        csv_path = os.path.join(log_dir, "SS_Total_and_Pred_log.csv")
 
         csv_f = open(csv_path, "w", newline="")
         csv_w = csv.DictWriter(csv_f, fieldnames=["iter", "elapsed_time", "pred_time"])

@@ -1,3 +1,5 @@
+
+
 import rclpy
 from rclpy.node import Node
 from rclpy.task import Future
@@ -9,8 +11,6 @@ import carla
 from carla import WeatherParameters
 import time
 import queue
-import csv
-import os
 
 from carlaros_interfaces.srv import InferSteering   # <--- custom service
 
@@ -28,29 +28,13 @@ class CarlaDriverNode(Node):
         # Initialize CARLA
         self.init_carla()
 
-        self.run_id = int(time.time())
-        log_dir = os.path.expanduser("/home/krg6/Capstone/PilotNet_Train/pilotnetros/latency_logs")
-        os.makedirs(log_dir, exist_ok=True)
-        self.csv_path = os.path.join(log_dir, f"latency_log.csv")
-
-        self.csv_f = open(self.csv_path, "w", newline="")
-        self.csv_w = csv.writer(self.csv_f)
-        self.csv_w.writerow([
-            "seq",
-            # "t_cam_cb_ns",
-            # "t_req_send_ns",
-            # "t_resp_done_ns",
-            # "t_apply_ns",
-            "lat_service_ms",
-            # "lat_e2e_ms",
-        ])
-        self.csv_f.flush()
         self.i = 0
         self.image_queue = queue.Queue()
-        def _cam_cb(img):
-            t_cam_cb_ns = time.perf_counter_ns()
-            self.image_queue.put((img, t_cam_cb_ns))
-        self.camera.listen(_cam_cb)
+        self.camera.listen(self.image_queue.put)
+        # FPS calculation
+        self.total_latency=0.0
+        self.frame_count=0
+        self.start_time=time.time()
 
     def init_carla(self):
         client = carla.Client("localhost", 2000)
@@ -89,8 +73,7 @@ class CarlaDriverNode(Node):
         # camera_init_trans = carla.Transform(carla.Location(x=0.8, z=1.7), carla.Rotation(pitch=0,yaw=0,roll=6)) #For fault injection: orientation fault
         self.camera = self.world.spawn_actor(camera_bp, camera_init_trans, attach_to=self.vehicle)
 
-    def process_image_and_request_steering(self, image: carla.Image, t_cam_cb_ns: int):
-
+    def process_image_and_request_steering(self, image: carla.Image):
         """
         Convert CARLA image → cropped ROS Image → call model service → apply steering.
         This is called once per simulation step from main().
@@ -115,41 +98,20 @@ class CarlaDriverNode(Node):
         ros_msg.header = Header()
         ros_msg.header.frame_id = str(self.i)
 
-        # sent_time = time.time()
-        # print(f"Seq: {ros_msg.header.frame_id} | Sent at: {sent_time}")
+        sent_time = time.time()
+        print(f"Frame Number: {ros_msg.header.frame_id} | Sent at: {sent_time}")
 
-        # # --- SERVICE CALL: block until steering is returned ---
-        # request = InferSteering.Request()
-        # request.image = ros_msg
-        
-        # future = self.steering_client.call_async(request)
-        # rclpy.spin_until_future_complete(self, future)
-        # received_time = time.time()
-        # # if future.result() is None:
-        # #     self.get_logger().error('Service call failed, using zero steering')
-        # #     steering_cmd = 0.0
-        # # else:
-        # steering_cmd = float(future.result().steering)
-
-        # # Apply steering command to CARLA
-        # control = carla.VehicleControl()
-        # control.steer = steering_cmd
-        # control.throttle = 0.5
-        # self.vehicle.apply_control(control)
-
-        
-        # latency = received_time - sent_time
-        # print(f"Steering: {steering_cmd:.4f} | Latency: {latency:.4f}s")
-        seq = int(ros_msg.header.frame_id)
-
-        
+        # --- SERVICE CALL: block until steering is returned ---
         request = InferSteering.Request()
         request.image = ros_msg
-        t_req_send_ns = time.perf_counter_ns()
+        
         future = self.steering_client.call_async(request)
         rclpy.spin_until_future_complete(self, future)
-        t_resp_done_ns = time.perf_counter_ns()
-
+        received_time = time.time()
+        # if future.result() is None:
+        #     self.get_logger().error('Service call failed, using zero steering')
+        #     steering_cmd = 0.0
+        # else:
         steering_cmd = float(future.result().steering)
 
         # Apply steering command to CARLA
@@ -157,28 +119,31 @@ class CarlaDriverNode(Node):
         control.steer = steering_cmd
         control.throttle = 0.5
         self.vehicle.apply_control(control)
-        # t_apply_ns = time.perf_counter_ns()
 
-        lat_service_ms = (t_resp_done_ns - t_req_send_ns) / 1e6
-        # lat_e2e_ms = (t_apply_ns - t_cam_cb_ns) / 1e6
+        
+        #latency = received_time - sent_time
+        received_time = time.time()
 
-        print(f"Seq: {seq} | Steer: {steering_cmd:.4f} | service_ms: {lat_service_ms:.2f}")
+        steering_cmd = float(future.result().steering)
 
-        # write one row per frame
-        self.csv_w.writerow([
-            seq,
-            # t_cam_cb_ns,
-            # t_req_send_ns,
-            # t_resp_done_ns,
-            # t_apply_ns,
-            lat_service_ms,
-            # lat_e2e_ms,
-        ])
 
-        # flush occasionally so you don't lose data if it crashes
-        if seq % 50 == 0:
-            self.csv_f.flush()
+        #Latency & FPS
+        latency = received_time - sent_time
+        self.total_latency += latency
+        self.frame_count += 1
 
+        avg_latency = self.total_latency / self.frame_count
+        fps_from_latency = 1.0 / avg_latency
+
+        print(
+            f"Frame: {self.frame_count} | "
+            f"Steering: {steering_cmd:.4f} | "
+            f"Latency: {latency:.4f}s | "
+            f"Avg FPS (latency-based): {fps_from_latency:.2f}"
+        )
+
+
+        #print(f"Steering: {steering_cmd:.4f} | Latency: {latency:.4f}s")
     
 
 def main(args=None):
@@ -192,10 +157,10 @@ def main(args=None):
 
         while rclpy.ok():
             # 1) Get the latest camera frame (produced by previous tick)
-            image, t_cam_cb_ns = node.image_queue.get()
+            image = node.image_queue.get()
 
             # 2) Send to model service and wait for steering
-            node.process_image_and_request_steering(image, t_cam_cb_ns)
+            node.process_image_and_request_steering(image)
 
             # 3) Advance CARLA world *only after* model returned steering
             #time.sleep(1)
@@ -207,35 +172,32 @@ def main(args=None):
 
     except KeyboardInterrupt:
         print("Shutting down node.")
+        settings = node.world.get_settings()
+        settings.synchronous_mode = False # Disables synchronous mode
+        settings.fixed_delta_seconds = None
+        node.world.apply_settings(settings)
+
+        node.camera.stop()
+        node.vehicle.destroy()
+        node.destroy_node()
+        rclpy.shutdown()
 
     except Exception as e:
         print("Exception: ", e)
-        
+        settings = node.world.get_settings()
+        settings.synchronous_mode = False # Disables synchronous mode
+        settings.fixed_delta_seconds = None
+        node.world.apply_settings(settings)
+
+        node.camera.stop()
+        node.vehicle.destroy()
+        node.destroy_node()
+        rclpy.shutdown() 
     finally:
-        try:
-            node.csv_f.flush()
-            node.csv_f.close()
-            print(f"Saved latency log to: {node.csv_path}")
-        except Exception as e:
-            print("CSV close error:", e)
-
-        try:
-            settings = node.world.get_settings()
-            settings.synchronous_mode = False
-            settings.fixed_delta_seconds = None
-            node.world.apply_settings(settings)
-        except:
-            pass
-
-        try: node.camera.stop()
-        except: pass
-        try: node.vehicle.destroy()
-        except: pass
-        try: node.destroy_node()
-        except: pass
-        try: rclpy.shutdown()
-        except: pass
-
+        node.camera.stop()
+        node.vehicle.destroy()
+        node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == "__main__":
     main()

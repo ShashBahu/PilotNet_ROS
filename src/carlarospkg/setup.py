@@ -22,7 +22,11 @@ setup(
         'console_scripts': [
             'carlarosnode = carlarospkg.carlarosnode:main',
             'camshakenode = carlarospkg.camshakenode:main',
-            'carlarosnode_log1 = carlarospkg.carlarosnode_log1:main'
+            'carlarosnode_log1 = carlarospkg.carlarosnode_log1:main',
+            'carlarosnode_copy = carlarospkg.carlarosnode_copy:main',
+            'pilotnetsim_log = carlarospkg.pilotnetsim_log:main',
+            'carlarosnode_Sync_Log = carlarospkg.carlarosnode_Sync_log:main',
+            'carlarosnode_ASync_Log = carlarospkg.carlarosnode_ASync_log:main'
         ],
     },
 )
