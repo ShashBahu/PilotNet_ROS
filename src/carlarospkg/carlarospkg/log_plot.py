@@ -86,7 +86,7 @@ def print_stats(name, arr_ms):
     print(f"  p99 : {np.percentile(arr_ms, 99):.2f} ms")
     print(f"  max : {arr_ms.max():.2f} ms")
 
-def overlay_hist(a_ms, b_ms,label_a, label_b,title, xlabel, out_png,bins=60):
+def overlay_hist(a_ms, b_ms,label_a, label_b, title, xlabel, out_png,bins=60):
 
     # stats
     mean_a = a_ms.mean()
@@ -161,13 +161,12 @@ overlay_hist(
     ros_pred_ms, single_pred_ms,
     "ROS bridge (Jetson service predict time)",
     "Single system (local predict time)",
-    mean_lat := ros_pred_ms.mean(),
-    single_pred_ms.mean(),
     title="Prediction Time Histogram: ROS Bridge vs Single System",
     xlabel="Prediction time (ms)",
     out_png=os.path.join(OUT_DIR, "hist_prediction_overlay.png"),
     bins=60
 )
+
 
 
 # ----------------------------
@@ -197,11 +196,10 @@ overlay_hist(
     ros_elapsed_ms, single_elapsed_ms,
     "ROS bridge (total step time)",
     "Single system (total step time)",
-    ros_elapsed_ms.mean(),
-    single_elapsed_ms.mean(),
     title="Total Elapsed Time Histogram: ROS Bridge vs Single System",
     xlabel="Elapsed time per step (ms)",
     out_png=os.path.join(OUT_DIR, "hist_elapsed_overlay.png"),
     bins=60
 )
+
 
