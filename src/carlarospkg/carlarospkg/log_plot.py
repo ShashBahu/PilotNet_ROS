@@ -86,20 +86,62 @@ def print_stats(name, arr_ms):
     print(f"  p99 : {np.percentile(arr_ms, 99):.2f} ms")
     print(f"  max : {arr_ms.max():.2f} ms")
 
-def overlay_hist(a_ms, b_ms, label_a, label_b, title, xlabel, out_png, bins=60):
+def overlay_hist(a_ms, b_ms,label_a, label_b,title, xlabel, out_png,bins=60):
+
+    # stats
+    mean_a = a_ms.mean()
+    mean_b = b_ms.mean()
+
+    p95_a = np.percentile(a_ms, 95)
+    p95_b = np.percentile(b_ms, 95)
+
+    p99_a = np.percentile(a_ms, 99)
+    p99_b = np.percentile(b_ms, 99)
+
     xmax = float(max(a_ms.max(), b_ms.max()))
+
     plt.figure()
-    plt.hist(a_ms, bins=bins, range=(0, xmax), histtype="step", linewidth=2, label=label_a)
-    plt.hist(b_ms, bins=bins, range=(0, xmax), histtype="step", linewidth=2, label=label_b)
+
+    # histograms
+    plt.hist(
+        a_ms, bins=bins, range=(0, xmax),
+        histtype="step", linewidth=2,
+        label=(
+            f"{label_a}\n"
+            f"mean={mean_a:.1f} ms | P95={p95_a:.1f} | P99={p99_a:.1f}"
+        )
+    )
+
+    plt.hist(
+        b_ms, bins=bins, range=(0, xmax),
+        histtype="step", linewidth=2,
+        label=(
+            f"{label_b}\n"
+            f"mean={mean_b:.1f} ms | P95={p95_b:.1f} | P99={p99_b:.1f}"
+        )
+    )
+
+    # vertical lines — ROS
+    plt.axvline(mean_a, linestyle="-",  linewidth=1.5)
+    plt.axvline(p95_a, linestyle="--", linewidth=1.5)
+    plt.axvline(p99_a, linestyle=":",  linewidth=1.5)
+
+    # vertical lines — Single system
+    plt.axvline(mean_b, linestyle="-",  linewidth=1.5)
+    plt.axvline(p95_b, linestyle="--", linewidth=1.5)
+    plt.axvline(p99_b, linestyle=":",  linewidth=1.5)
+
     plt.xlabel(xlabel)
     plt.ylabel("Count")
     plt.title(title)
     plt.xlim(0, xmax)
     plt.grid(False)
-    plt.legend()
+    plt.legend(fontsize=9)
     plt.tight_layout()
     plt.savefig(out_png, dpi=200)
+
     print("Saved:", out_png)
+
 
 # ----------------------------
 # 1) PREDICTION TIME HISTOGRAM
@@ -119,11 +161,14 @@ overlay_hist(
     ros_pred_ms, single_pred_ms,
     "ROS bridge (Jetson service predict time)",
     "Single system (local predict time)",
+    mean_lat := ros_pred_ms.mean(),
+    single_pred_ms.mean(),
     title="Prediction Time Histogram: ROS Bridge vs Single System",
     xlabel="Prediction time (ms)",
     out_png=os.path.join(OUT_DIR, "hist_prediction_overlay.png"),
     bins=60
 )
+
 
 # ----------------------------
 # 2) TOTAL ELAPSED TIME HISTOGRAM
@@ -152,8 +197,11 @@ overlay_hist(
     ros_elapsed_ms, single_elapsed_ms,
     "ROS bridge (total step time)",
     "Single system (total step time)",
+    ros_elapsed_ms.mean(),
+    single_elapsed_ms.mean(),
     title="Total Elapsed Time Histogram: ROS Bridge vs Single System",
     xlabel="Elapsed time per step (ms)",
     out_png=os.path.join(OUT_DIR, "hist_elapsed_overlay.png"),
     bins=60
 )
+
