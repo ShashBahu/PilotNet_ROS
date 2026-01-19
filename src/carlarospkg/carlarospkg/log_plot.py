@@ -62,7 +62,7 @@ os.makedirs(OUT_DIR, exist_ok=True)
 # ----------------------------
 # HELPERS
 # ----------------------------
-def load_col(csv_path, col, skip_first=True, max_samples=200):
+def load_col(csv_path, col, skip_first=True):
     vals = []
     with open(csv_path, "r") as f:
         r = csv.DictReader(f)
@@ -76,8 +76,6 @@ def load_col(csv_path, col, skip_first=True, max_samples=200):
             if row.get(col, "") == "":
                 continue
             vals.append(float(row[col]))
-            if len(vals) >= max_samples:
-                break
     return np.array(vals, dtype=float)
 
 def print_stats(name, arr_ms):
