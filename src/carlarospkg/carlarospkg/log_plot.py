@@ -131,7 +131,7 @@ overlay_hist(
 
 # ROS elapsed time: assume seconds -> convert to ms
 # If your ROS elapsed CSV is already ms, set ROS_ELAPSED_IS_SECONDS = False
-ROS_ELAPSED_IS_SECONDS = True
+ROS_ELAPSED_IS_SECONDS = False
 
 # Column names expected:
 # - ROS elapsed CSV: elapsed_time (seconds) OR elapsedtime_s, etc.
