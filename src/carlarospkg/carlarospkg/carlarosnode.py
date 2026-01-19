@@ -169,6 +169,7 @@ class CarlaDriverNode(Node):
         client.set_timeout(10.0)
 
         self.world = client.get_world()
+        
         settings = self.world.get_settings()
         settings.synchronous_mode = True
         settings.fixed_delta_seconds = 0.2
