@@ -46,10 +46,18 @@ class CarlaDriverNode(Node):
         ])
         self.csv_f.flush()
         self.i = 0
-        self.image_queue = queue.Queue()
+        self.image_queue = queue.Queue(maxsize=1)
         def _cam_cb(img):
             t_cam_cb_ns = time.perf_counter_ns()
-            self.image_queue.put((img, t_cam_cb_ns))
+            try:
+                self.image_queue.get_nowait()
+            except queue.Empty:
+                pass
+            # push newest frame
+            try:
+                self.image_queue.put_nowait((img, t_cam_cb_ns))
+            except queue.Full:
+                pass
         self.camera.listen(_cam_cb)
 
     def init_carla(self):
@@ -84,6 +92,7 @@ class CarlaDriverNode(Node):
         camera_bp.set_attribute("image_size_x", "720")
         camera_bp.set_attribute("image_size_y", "405")
         camera_bp.set_attribute("fov", "110")
+        camera_bp.set_attribute("sensor_tick", "0.1")
         camera_init_trans = carla.Transform(carla.Location(x=0.8, z=1.7))
         self.base_cam_transform = camera_init_trans
         # camera_init_trans = carla.Transform(carla.Location(x=0.8, z=1.7), carla.Rotation(pitch=0,yaw=0,roll=6)) #For fault injection: orientation fault
@@ -155,7 +164,7 @@ class CarlaDriverNode(Node):
         # Apply steering command to CARLA
         control = carla.VehicleControl()
         control.steer = steering_cmd
-        control.throttle = 0.5
+        control.throttle = 0.3
         self.vehicle.apply_control(control)
         # t_apply_ns = time.perf_counter_ns()
 
